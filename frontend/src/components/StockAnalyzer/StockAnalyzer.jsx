@@ -4,6 +4,7 @@ const StockAnalyzer = () => {
   const [tickers, setTickers] = useState([]);
   const [inputTicker, setInputTicker] = useState("");
   const [generatedImage, setGeneratedImage] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Handle input change
   const handleInputChange = (e) => {
@@ -24,10 +25,31 @@ const StockAnalyzer = () => {
   };
 
   // Submit tickers and generate image
-  const handleSubmit = () => {
-    // For now, we'll use a static image URL
-    const staticImageUrl = "https://example.com/static-stock-image.jpg";
-    setGeneratedImage(staticImageUrl);
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tickers }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to generate chart: ${errorText}`);
+      }
+
+      const blob = await response.blob();
+      const imageUrl = URL.createObjectURL(blob);
+      setGeneratedImage(imageUrl);
+    } catch (error) {
+      console.error('Error:', error);
+      alert(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -64,10 +86,10 @@ const StockAnalyzer = () => {
 
         <button
           onClick={handleSubmit}
-          disabled={tickers.length === 0}
+          disabled={tickers.length === 0 || isLoading}
           className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Analyze Stocks
+          {isLoading ? 'Analyzing...' : 'Analyze Stocks'}
         </button>
       </div>
 
